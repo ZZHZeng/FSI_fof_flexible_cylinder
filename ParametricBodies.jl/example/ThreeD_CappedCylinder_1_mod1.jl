@@ -1,0 +1,112 @@
+using WaterLily
+using StaticArrays
+using WriteVTK
+using ParametricBodies
+
+function pressure_force1(sim::Simulation,n,R,L;T=promote_type(Float64,eltype(sim.flow.p)))
+    forces = []; limits = ParametricBodies.lims(sim.body)
+    a = zeros(n); b = zeros(n)
+    ds = 1/n
+    for i in 1:n
+        a[i] = i*ds-1/2L
+        b[i] = i*ds+1/2L
+    end
+    segmts = [sim.body.curve.(ξᵢ,0) for ξᵢ in zip(a[1:end],b[1:end])]
+    for (p₁,p₂) in segmts
+        sim.flow.f .= zero(eltype(sim.flow.p))
+        WaterLily.@loop sim.flow.f[I,:] .= norm(nds0(sim.body,loc(0,I,T),p₁,p₂,R)) over I ∈ inside(sim.flow.p)
+        push!(forces,sum(T,sim.flow.f,dims=ntuple(i->i,ndims(sim.flow.p)))[:])
+    end
+    return forces
+end
+
+using LinearAlgebra: dot,norm
+function cylinder(x::SVector{N,T},p₁,p₂,R) where {N,T}
+    RR = R-1   
+    ba = p₂ - p₁
+    pa = x - p₁
+    baba = dot(ba,ba)
+    paba = dot(pa,ba)
+    x = norm(pa*baba-ba*paba) - RR*baba
+    y = abs(paba-baba*0.5f0)-baba*0.5f0
+    x2 = x*x
+    y2 = y*y*baba
+    d = (max(x,y)<0) ? -min(x2,y2) : (((x>0) ? x2 : 0)+((y>0) ? y2 : 0))
+    return convert(T,sign(d)*sqrt(abs(d))/baba-1)
+end
+using ForwardDiff
+function nds0(body,x,p1,p2,R)
+    d = cylinder(x,p1,p2,R)
+    n = ForwardDiff.gradient(x->cylinder(x,p1,p2,R), x)
+    m = √sum(abs2,n); d /= m; n /= m
+    any(isnan.(n)) && return zero(x) ## remove the singular points. think about the rectangular, the normal vectors around corners are nasty 
+    return n*WaterLily.kern(clamp(d,-1,1)).*WaterLily.μ₀(WaterLily.sdf(body,x,0)+0.5,0)
+end
+
+function make_sim(L,thk,h;Re=250,U =1,ϵ=0.5,mem=Array)
+    # define a flat plat at and angle of attack
+    cps = SA[0   1   2
+             0.0 h/2 h
+             0    0   0]*L .+ [L,2L,16]
+
+    # needed if control points are moved
+    curve = BSplineCurve(cps;degree=2)
+
+    # use BDIM-σ distance function, make a body and a Simulation
+    body = DynamicNurbsBody(curve;thk=(u)->thk,boundary=false)
+    Simulation((4L,4L,32),(U,0,0),L;U,ν=U*L/Re,body,T=Float64,mem)
+end
+
+function run(L,h,thk,N)
+
+    sim = make_sim(L,thk,h)
+
+    # # make a writer with some attributes
+    # velocity(a::Simulation) = a.flow.u |> Array;
+    # pressure(a::Simulation) = a.flow.p |> Array;
+    # _body(a::Simulation) = (measure_sdf!(a.flow.σ, a.body, WaterLily.time(a.flow)); 
+    #                         a.flow.σ |> Array;)
+
+    # limits = ParametricBodies.lims(sim.body)
+    # a = zeros(N); b = zeros(N)
+    # ds = 1/N
+    # for i in 1:N
+    #     a[i] = i*ds-1/2L
+    #     b[i] = i*ds+1/2L
+    # end
+    # segmts = [sim.body.curve.(ξᵢ,0) for ξᵢ in zip(a[1:end],b[1:end])]
+    # p₁,p₂ = segmts[1]
+    # p₃,p₄ = segmts[N-3]
+    # p₅,p₆ = segmts[N-2]
+    # p₇,p₈ = segmts[N-1]
+
+    # _sdf(a::Simulation) = (WaterLily.@loop a.flow.σ[I] = cylinder(loc(0,I),p₁,p₂,4) over I ∈ inside(a.flow.p); 
+    #                         a.flow.σ |> Array;)
+    # _nds_1(a::Simulation) = (WaterLily.@loop a.flow.f[I,:] .= nds0(a.body,loc(0,I),p₁,p₂,thk/2) over I ∈ inside(a.flow.p); 
+    #                         a.flow.f |> Array;)
+    # _nds_2(a::Simulation) = (WaterLily.@loop a.flow.f[I,:] .= nds0(a.body,loc(0,I),p₃,p₄,thk/2) over I ∈ inside(a.flow.p); 
+    #                         a.flow.f |> Array;)
+    # _nds_3(a::Simulation) = (WaterLily.@loop a.flow.f[I,:] .= nds0(a.body,loc(0,I),p₅,p₆,thk/2) over I ∈ inside(a.flow.p); 
+    #                         a.flow.f |> Array;)
+    # _nds_4(a::Simulation) = (WaterLily.@loop a.flow.f[I,:] .= nds0(a.body,loc(0,I),p₇,p₈,thk/2) over I ∈ inside(a.flow.p); 
+    #                         a.flow.f |> Array;)
+    # _nds2(a::Simulation) = (WaterLily.@loop a.flow.f[I,:] .= WaterLily.nds(a.body,loc(0,I),0.0) over I ∈ inside(a.flow.p); 
+    #                         a.flow.f |> Array;)
+
+    # custom_attrib = Dict(
+    #     "u" => velocity, "p" => pressure, "d" => _body, "nds11" => _nds_1, "nds12" => _nds_2, "nds13" => _nds_3, "nds14" => _nds_4,"sdf_4" => _sdf, "nds2" => _nds2
+    # )
+
+    # wr = vtkWriter("ThreeD_cylinder_no_tapper_mu0_method"; attrib=custom_attrib)
+    # write!(wr, sim)
+    # close(wr)
+
+    apply!(x->x[2],sim.flow.p)
+    @time global p = pressure_force1(sim,N,thk/2,L)
+
+    @show p
+    @show sum(getindex.(p,2)) # new force function
+    @show(4*√(2^2+h^2)/2*thk*π)
+
+end
+@profview run(32,1.0,12,8)
