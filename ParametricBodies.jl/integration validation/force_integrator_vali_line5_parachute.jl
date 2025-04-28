@@ -126,16 +126,17 @@ function run(L,thk1,thk2,thk3,n,h,tapper,rope,parachute)
     write!(wr, sim)
     close(wr)
 
+    println("Analytical force in z direcytion:")
     global p = pressure_force2(sim,n,(thk1)/2,(thk2)/2,(thk3)/2,L,tapper,rope,parachute)
-    println("simulation-y:")
+    println("Force in y direction measure by the integrator:")
     for i in 1:n-1
         println(p[i,2])
     end
-    println("simulation-z:")
+    println("Force in z direction measure by the integrator:")
     for i in 1:n-1
         println(p[i,3])
     end
-    println("coordinate")
+    println("Coordinate of Gauss point:")
     intx=L/n
     inty=h*L/n
     for i in 1:n-1

@@ -108,16 +108,17 @@ function run(L,thk1,thk2,n,h,tapper)
     wr = vtkWriter("ThreeD_cylinder_validation_straight_extraBlunt"; attrib=custom_attrib)
     write!(wr, sim)
     close(wr)
+    println("Analytical force in y direcytion:")
     global p = pressure_force2(sim,n,(thk1)/2,(thk2)/2,h,L,tapper)
-    println("simulation-y:")
+    println("Force in y direction measure by the integrator:")
     for i in 1:n-1
         println(p[i,2])
     end
-    println("simulation-z:")
+    println("Force in z direction measure by the integrator:")
     for i in 1:n-1
         println(p[i,3])
     end
-    println("coordinate")
+    println("Coordinate of Gauss point:")
     intx=L/n
     inty=h*L/n
     for i in 1:n-1
