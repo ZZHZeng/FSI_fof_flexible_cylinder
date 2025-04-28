@@ -126,13 +126,13 @@ function run(L,thk1,thk2,thk3,n,h,tapper,rope,parachute)
     write!(wr, sim)
     close(wr)
 
-    println("Analytical force in z direcytion:")
+    println("Analytical force in z direction:")
     global p = pressure_force2(sim,n,(thk1)/2,(thk2)/2,(thk3)/2,L,tapper,rope,parachute)
-    println("Force in y direction measure by the integrator:")
+    println("Force in y direction measured by the integrator:")
     for i in 1:n-1
         println(p[i,2])
     end
-    println("Force in z direction measure by the integrator:")
+    println("Force in z direction measured by the integrator:")
     for i in 1:n-1
         println(p[i,3])
     end

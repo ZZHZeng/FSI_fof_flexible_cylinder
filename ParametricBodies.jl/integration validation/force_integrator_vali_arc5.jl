@@ -93,24 +93,24 @@ function run(L,thk,n)
     write!(wr, sim)
     close(wr)
     
-    println("Analytical force in y direcytion:")
+    println("Analytical force in y direction:")
     @time global p = pressure_force2(sim,n,thk/2,L)
     @show(pressure_force(sim)[2])
     @show((thk/2)^2*π*L*π+4/3*(thk/2)^3*π)
 
-    println("Analytical force in x direcytion:")
+    println("Analytical force in x direction:")
     for k in 1:n-1
         println(-beta[k,1]*beta[k,2]*π*((thk)/2)^2)
     end
-    println("Analytical force in y direcytion:")
+    println("Analytical force in y direction:")
     for k in 1:n-1
         println(-beta[k,1]*beta[k,1]*π*((thk)/2)^2)
     end
-    println("Force in y direction measure by the integrator:")
+    println("Force in y direction measured by the integrator:")
     for i in 1:n-1
         println(p[i,2])
     end
-    println("Force in z direction measure by the integrator:")
+    println("Force in z direction measured by the integrator:")
     for i in 1:n-1
         println(p[i,3])
     end

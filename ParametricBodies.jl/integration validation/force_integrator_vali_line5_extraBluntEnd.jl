@@ -108,13 +108,13 @@ function run(L,thk1,thk2,n,h,tapper)
     wr = vtkWriter("ThreeD_cylinder_validation_straight_extraBlunt"; attrib=custom_attrib)
     write!(wr, sim)
     close(wr)
-    println("Analytical force in y direcytion:")
+    println("Analytical force in y direction:")
     global p = pressure_force2(sim,n,(thk1)/2,(thk2)/2,h,L,tapper)
-    println("Force in y direction measure by the integrator:")
+    println("Force in y direction measured by the integrator:")
     for i in 1:n-1
         println(p[i,2])
     end
-    println("Force in z direction measure by the integrator:")
+    println("Force in z direction measured by the integrator:")
     for i in 1:n-1
         println(p[i,3])
     end
